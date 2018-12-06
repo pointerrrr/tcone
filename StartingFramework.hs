@@ -102,21 +102,22 @@ isUTC = const True <$> symbol 'Z'
 run :: Parser a b -> [a] -> Maybe b
 run p xs = if (null f)
                 then Nothing
-                else Just (fst(head f))
+                else Just $ fst (head f)
             where f = filter(\(_,b) -> null b) (parse p xs)
 
 -- Exercise 3
 printDateTime :: DateTime -> String
-printDateTime  = undefined
+printDateTime (DateTime x y True) = show x ++ "T" ++ show y ++ "Z"
+printDateTime (DateTime x y _) = show x ++ "T" ++ show y  
 
 instance Show Date where
     show (Date x y z) = addZero 4 (show(unYear x)) ++ addZero 2 (show(unMonth y)) ++ addZero 2 (show(unDay z))
 
 instance Show Time where
-    show (Time x y z) = addZero 4 (show(unHour x)) ++ addZero 2 (show(unMinute y)) ++ addZero 2 (show(unSecond z))
+    show (Time x y z) = addZero 2 (show(unHour x)) ++ addZero 2 (show(unMinute y)) ++ addZero 2 (show(unSecond z))
 
 addZero :: Int -> String -> String
-addZero x y | length (y) < 0 = addZero x ("0" ++ y)
+addZero x y | length (y) < x = addZero x ("0" ++ y)
             | otherwise = y
 
 -- Exercise 4
