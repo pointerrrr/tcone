@@ -111,7 +111,7 @@ printDateTime (DateTime x y True) = show x ++ "T" ++ show y ++ "Z"
 printDateTime (DateTime x y _) = show x ++ "T" ++ show y  
 
 instance Show Date where
-    show (Date x y z) = addZero 4 (show(unYear x)) ++ addZero 2 (show(unMonth y)) ++ addZero 2 (show(unDay z))
+    show (Date x y z) = addZero 4 (show(unYear x)) ++ addZero 2 (show(unMonth y)) ++ addZero 2  (show(unDay z))
 
 instance Show Time where
     show (Time x y z) = addZero 2 (show(unHour x)) ++ addZero 2 (show(unMinute y)) ++ addZero 2 (show(unSecond z))
@@ -125,7 +125,24 @@ parsePrint s = fmap printDateTime $ run parseDateTime s
 
 -- Exercise 5
 checkDateTime :: DateTime -> Bool
-checkDateTime = undefined
+checkDateTime (DateTime a b c) = undefined
+
+checkDate :: Date -> Bool
+checkDate (Date y m d) = y < (Year 10000) && y > (Year 1000) && m < (Month 13) -- && validDay y m d
+
+monthDayList = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
+
+validDay :: Year -> Month -> Day -> Bool
+validDay (Year y) (Month m) (Day d) = if (isLeap y && m == 2)
+                                            then y < 10000 && y >= 1000 && m <= 12 && m > 0 && d <= 29 && d > 0
+                                            else y < 10000 && y >= 1000 && m <= 12 && m > 0 && d <= monthDayList !! (m -1) && d > 0
+
+isLeap :: Int -> Bool
+isLeap y = (y `mod` 4 == 0 && y `mod` 100 /= 0 ) || (y `mod` 400 == 0)
+
+
+checkTime :: Time -> Bool
+checkTime (Time (Hour h) (Minute m) (Second s)) = h < 13 && m < 60 && s < 60
 
 -- Exercise 6
 data Calendar = Calendar
