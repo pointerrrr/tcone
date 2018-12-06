@@ -145,7 +145,7 @@ checkTime (Time (Hour h) (Minute m) (Second s)) = h < 24 && m < 60 && s < 60
 data Calendar = Calendar {calprop :: [CalProp], event :: [Event]}
     deriving (Eq, Ord, Show)
 
-data CalProp = ProdID String | Version
+data CalProp = ProdId String | Version
     deriving (Eq, Ord, Show)
     
 
@@ -159,8 +159,8 @@ data EventProperty = DTStamp DateTime | UID String | DTStart DateTime | DTEnd Da
 -- Exercise 7
 data Token = TBegin String
            | TEnd String
-           | TProdId String
-           | TVersion String 
+           | TProdId {unStringI :: String }
+           | TVersion {unStringV :: String} 
            | TDtStamp DateTime
            | TUID String
            | TDtStart DateTime
@@ -213,13 +213,51 @@ test = "BEGIN:VCALENDAR\n\
 
 
 parseCalendar :: Parser Token Calendar
-parseCalendar = Calendar <$> many parseCalProp <*> many parseEvent
+parseCalendar = Calendar <$ symbol ( TBegin "VCALENDAR") <*> many parseCalProp <*> many parseEvent <* symbol (TEnd "VCALENDAR")
 
 parseCalProp :: Parser Token CalProp
-parseCalProp = undefined
+parseCalProp = parseProdId <|> parseVersion
+
+parseProdId :: Parser Token CalProp
+parseProdId = prodId <$> satisfy isProdId
+
+isProdId :: Token -> Bool
+isProdId (TProdId _) = True
+isProdId _           = False
+
+prodId :: Token -> CalProp
+prodId (TProdId t) = ProdId t
+
+parseVersion :: Parser Token CalProp
+parseVersion = Version <$ token ([TVersion "2.0"])
 
 parseEvent :: Parser Token Event
-parseEvent = undefined
+parseEvent = Event <$ symbol ( TBegin "EVENT") <*> many parseEventProp <* symbol (TEnd "EVENT")
+
+-- DTStamp DateTime | UID String | DTStart DateTime | DTEnd DateTime | Description String | Summary String | Location String
+parseEventProp :: Parser Token EventProperty
+parseEventProp = parseDTStamp <|> parseUID <|> parseDTStart <|> parseDTEnd <|> parseDescription <|> parseSummary <|> parseLocation
+
+parseDTStamp :: Parser Token EventProperty
+parseDTStamp = undefined
+
+parseUID :: Parser Token EventProperty
+parseUID = undefined
+
+parseDTStart :: Parser Token EventProperty
+parseDTStart = undefined
+
+parseDTEnd :: Parser Token EventProperty
+parseDTEnd = undefined
+
+parseDescription :: Parser Token EventProperty
+parseDescription = undefined
+
+parseSummary :: Parser Token EventProperty
+parseSummary = undefined
+
+parseLocation :: Parser Token EventProperty
+parseLocation = undefined
 
 recognizeCalendar :: String -> Maybe Calendar
 recognizeCalendar s = run scanCalendar s >>= run parseCalendar
