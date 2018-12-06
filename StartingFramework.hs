@@ -93,11 +93,6 @@ parseTime = Time <$> parseHour <*> parseMinute <*> parseSecond
 isUTC :: Parser Char Bool
 isUTC = const True <$> symbol 'Z'
 
---parseDigits ::
-
-
-
-
 -- Exercise 2
 run :: Parser a b -> [a] -> Maybe b
 run p xs = if (null f)
@@ -140,16 +135,24 @@ validDay (Year y) (Month m) (Day d) = if (isLeap y && m == 2)
 isLeap :: Int -> Bool
 isLeap y = (y `mod` 4 == 0 && y `mod` 100 /= 0 ) || (y `mod` 400 == 0)
 
-
 checkTime :: Time -> Bool
 checkTime (Time (Hour h) (Minute m) (Second s)) = h < 24 && m < 60 && s < 60
 
 -- Exercise 6
-data Calendar = Calendar
+
+-- newtype Year  = Year { unYear :: Int }  deriving (Eq, Ord)
+data Calendar = Calendar {calprop :: [CalProp], event :: [Event]}
     deriving (Eq, Ord, Show)
 
-data Event = Event
+data CalProp = ProdID String | Version
     deriving (Eq, Ord, Show)
+
+data Event = Event {eventProp :: [EventProperty]}
+    deriving (Eq, Ord, Show)
+
+data EventProperty = DTStamp DateTime | UID String | DTStart DateTime | DTEnd DateTime | Description String | Summary String | Location String
+    deriving (Eq, Ord, Show)
+
 
 -- Exercise 7
 data Token = Token
