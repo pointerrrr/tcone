@@ -1,6 +1,7 @@
 import ParseLib.Abstract
 import System.Environment
-import Prelude hiding ((<*), (<$))
+import Data.Char
+import Prelude hiding ((<*), (<$), (*>))
 
 -- Starting Framework
 
@@ -156,11 +157,77 @@ data EventProperty = DTStamp DateTime | UID String | DTStart DateTime | DTEnd Da
 
 
 -- Exercise 7
-data Token = Token
+data Token = TBegin String
+           | TEnd String
+           | TProdId String
+           | TVersion String 
+           | TDtStamp DateTime
+           | TUID String
+           | TDtStart DateTime
+           | TDtEnd  DateTime
+           | TDescription String
+           | TSummary String
+           | TLocation String
     deriving (Eq, Ord, Show)
 
 scanCalendar :: Parser Char [Token]
-scanCalendar = undefined
+scanCalendar = greedy scanToken <* eof
+
+scanToken :: Parser Char Token
+scanToken = tbegin <|> tend <|> tprodid <|> tversion <|> tdtstamp <|> tuid <|> tdtstart <|> tdtend <|> tdescription <|> tsummary <|> tlocation
+
+tbegin :: Parser Char Token
+tbegin = TBegin <$ token "BEGIN:" <*> many (notSymbol '\n') <* symbol '\n'
+ 
+tend :: Parser Char Token
+tend = TEnd <$ token "END:" <*> many (notSymbol '\n') <* symbol '\n' 
+
+tversion :: Parser Char Token
+tversion = TVersion <$ token "VERSION:" <*> many (notSymbol '\n') <* symbol '\n'
+
+tprodid :: Parser Char Token
+tprodid = TProdId <$ token "PRODID:" <*> many (notSymbol '\n') <* symbol '\n'
+
+tdtstamp :: Parser Char Token
+tdtstamp = TDtStamp <$ token "DTSTAMP:" <*> parseDateTime <* symbol '\n'
+
+tuid :: Parser Char Token
+tuid = TUID <$ token "UID:" <*> many (notSymbol '\n') <* symbol '\n'
+
+tdtstart :: Parser Char Token
+tdtstart = TDtStart<$ token "DTSTART:" <*> parseDateTime <* symbol '\n'
+
+tdtend :: Parser Char Token
+tdtend = TDtEnd <$ token "DTEND:" <*> parseDateTime <* symbol '\n'
+
+tdescription :: Parser Char Token
+tdescription = TDescription <$ token "DESCRIPTION:" <*> many (notSymbol '\n') <* symbol '\n'
+
+tsummary :: Parser Char Token
+tsummary = TSummary <$ token "SUMMARY:" <*> many (notSymbol '\n') <* symbol '\n'
+
+tlocation :: Parser Char Token
+tlocation = TLocation <$ token "LOCATION:" <*> many (notSymbol '\n') <* symbol '\n' 
+
+notSymbol :: Eq s  => s -> Parser s s
+notSymbol x = satisfy (/=x)
+
+test :: String
+test = "BEGIN:VCALENDAR\n\
+\VERSION:2.0\n\
+\PRODID:www.testMeiCalendar.net\n\
+\BEGIN:VEVENT\n\
+\DTSTART:20101231T230000\n\
+\DTEND:20110101T010000\n\
+\SUMMARY:New Years Eve Reminder\n\
+\LOCATION:Downtown\n\
+\DESCRIPTION:Let's get together for New Years Eve\n\
+\UID:ABCD1234\n\
+\DTSTAMP:20101125T112600\n\
+\END:VEVENT\n\
+\END:VCALENDAR\n\
+\"
+
 
 parseCalendar :: Parser Token Calendar
 parseCalendar = undefined
