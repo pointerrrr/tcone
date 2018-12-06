@@ -174,40 +174,23 @@ scanCalendar :: Parser Char [Token]
 scanCalendar = greedy scanToken <* eof
 
 scanToken :: Parser Char Token
-scanToken = tbegin <|> tend <|> tprodid <|> tversion <|> tdtstamp <|> tuid <|> tdtstart <|> tdtend <|> tdescription <|> tsummary <|> tlocation
+scanToken = tWithText TBegin "BEGIN:" <|>
+            tWithText TEnd "END:" <|>
+            tWithText TProdId "PRODID:" <|>
+            tWithText TVersion "VERSION:" <|>
+            tWithDateTime TDtStamp "DTSTAMP:" <|>
+            tWithText TUID "UID:" <|>
+            tWithDateTime TDtStart "DTSTART:" <|>
+            tWithDateTime TDtEnd "DTEND:" <|>
+            tWithText TDescription "DESCRIPTION:" <|>
+            tWithText TSummary "SUMMARY:" <|>
+            tWithText TLocation "LOCATION:"
 
-tbegin :: Parser Char Token
-tbegin = TBegin <$ token "BEGIN:" <*> many (notSymbol '\n') <* symbol '\n'
- 
-tend :: Parser Char Token
-tend = TEnd <$ token "END:" <*> many (notSymbol '\n') <* symbol '\n' 
+tWithText :: (String -> Token) -> String -> Parser Char Token
+tWithText f s = f <$ token s <*> many (notSymbol '\n') <* symbol '\n'
 
-tversion :: Parser Char Token
-tversion = TVersion <$ token "VERSION:" <*> many (notSymbol '\n') <* symbol '\n'
-
-tprodid :: Parser Char Token
-tprodid = TProdId <$ token "PRODID:" <*> many (notSymbol '\n') <* symbol '\n'
-
-tdtstamp :: Parser Char Token
-tdtstamp = TDtStamp <$ token "DTSTAMP:" <*> parseDateTime <* symbol '\n'
-
-tuid :: Parser Char Token
-tuid = TUID <$ token "UID:" <*> many (notSymbol '\n') <* symbol '\n'
-
-tdtstart :: Parser Char Token
-tdtstart = TDtStart<$ token "DTSTART:" <*> parseDateTime <* symbol '\n'
-
-tdtend :: Parser Char Token
-tdtend = TDtEnd <$ token "DTEND:" <*> parseDateTime <* symbol '\n'
-
-tdescription :: Parser Char Token
-tdescription = TDescription <$ token "DESCRIPTION:" <*> many (notSymbol '\n') <* symbol '\n'
-
-tsummary :: Parser Char Token
-tsummary = TSummary <$ token "SUMMARY:" <*> many (notSymbol '\n') <* symbol '\n'
-
-tlocation :: Parser Char Token
-tlocation = TLocation <$ token "LOCATION:" <*> many (notSymbol '\n') <* symbol '\n' 
+tWithDateTime :: (DateTime -> Token) -> String -> Parser Char Token
+tWithDateTime f s = f <$ token s <*> parseDateTime <* symbol '\n'
 
 notSymbol :: Eq s  => s -> Parser s s
 notSymbol x = satisfy (/=x)
@@ -230,7 +213,13 @@ test = "BEGIN:VCALENDAR\n\
 
 
 parseCalendar :: Parser Token Calendar
-parseCalendar = undefined
+parseCalendar = Calendar <$> many parseCalProp <*> many parseEvent
+
+parseCalProp :: Parser Token CalProp
+parseCalProp = undefined
+
+parseEvent :: Parser Token Event
+parseEvent = undefined
 
 recognizeCalendar :: String -> Maybe Calendar
 recognizeCalendar s = run scanCalendar s >>= run parseCalendar
