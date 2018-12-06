@@ -125,7 +125,7 @@ parsePrint s = fmap printDateTime $ run parseDateTime s
 
 -- Exercise 5
 checkDateTime :: DateTime -> Bool
-checkDateTime (DateTime a b c) = undefined
+checkDateTime (DateTime a b _) = checkDate a && checkDateTime b
 
 checkDate :: Date -> Bool
 checkDate (Date y m d) = y < (Year 10000) && y > (Year 1000) && m < (Month 13) -- && validDay y m d
