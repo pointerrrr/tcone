@@ -216,7 +216,7 @@ testCalendar = "BEGIN:VCALENDAR\n\
 
 
 parseCalendar :: Parser Token Calendar
-parseCalendar = Calendar <$ symbol ( TBegin "VCALENDAR") <*> many parseCalProp <*> many parseEvent <* symbol (TEnd "VCALENDAR")
+parseCalendar = Calendar <$ symbol (TBegin "VCALENDAR") <*> many parseCalProp <*> many parseEvent <* symbol (TEnd "VCALENDAR")
 
 parseCalProp :: Parser Token CalProp
 parseCalProp = parseProdId <|> parseVersion
@@ -280,7 +280,13 @@ printEvent :: Event -> String
 printEvent (Event x) = "BEGIN:VEVENT" ++ foldr (++) "" (map printEventProp x) ++ "END:VEVENT"
 
 printEventProp :: EventProperty -> String
-printEventProp = undefined
+printEventProp (DTStamp dt) = "DTSTAMP:" ++ printDateTime dt ++ "\n"
+printEventProp (UID s) = "UID:" ++ s ++ "\n"
+printEventProp (DTStart dt) = "DTSTART:" ++ printDateTime dt ++ "\n"
+printEventProp (DTEnd dt) =  "DTEND" ++ printDateTime dt ++ "\n"
+printEventProp (Description s) = "DESCRIPTION:" ++ s ++ "\n"
+printEventProp (Summary s) = "SUMMARY:" ++ s ++ "\n"
+printEventProp (Location s) = "LOCATION:" ++ s ++ "\n"
 
 -- Exercise 10
 countEvents :: Calendar -> Int
