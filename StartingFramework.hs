@@ -189,7 +189,7 @@ scanToken = tWithText TBegin "BEGIN:" <|>
             tWithText TLocation "LOCATION:"
 
 tWithText :: (String -> Token) -> String -> Parser Char Token
-tWithText f s = f <$ token s <*> many (notSymbol '\n') <* symbol '\r' <* symbol '\n'
+tWithText f s = f <$ token s <*> many (notSymbol '\r') <* symbol '\r' <* symbol '\n'
 
 tWithDateTime :: (DateTime -> Token) -> String -> Parser Char Token
 tWithDateTime f s = f <$ token s <*> parseDateTime <* symbol '\r' <* symbol '\n'
@@ -207,7 +207,8 @@ testCalendar = "BEGIN:VCALENDAR\r\n\
 \BEGIN:VEVENT\r\n\
 \DTSTART:20101231T230000\r\n\
 \DTEND:20110101T010000\r\n\
-\SUMMARY:New Years Eve Reminder\r\n\
+\SUMMARY:New Years Eve Reminder\n\
+\asdf\r\n\
 \LOCATION:Downtown\r\n\
 \DESCRIPTION:Let's get together for New Years Eve\r\n\
 \UID:ABCD1234\r\n\
