@@ -139,7 +139,7 @@ isLeap :: Int -> Bool
 isLeap y = (y `mod` 4 == 0 && y `mod` 100 /= 0 ) || (y `mod` 400 == 0)
 
 checkTime :: Time -> Bool
-checkTime (Time (Hour h) (Minute m) (Second s)) = h < 24 && m < 60 && s < 60
+checkTime (Time (Hour h) (Minute m) (Second s)) = h < 24 && h >= 0 && m < 60 && m >= 0 && s < 60 && s >= 0
 
 -- Exercise 6
 
@@ -276,20 +276,20 @@ readCalendar z = do
 -- Exercise 9
 -- DO NOT use a derived Show instance. Your printing style needs to be nicer than that :)
 printCalendar :: Calendar -> String
-printCalendar (Calendar x y) = "BEGIN:VCALENDAR" ++ foldr (++) "" (map printProp x) ++ foldr (++) "" (map printEvent y) ++ "END:VCALENDAR"
+printCalendar (Calendar x y) = "BEGIN:VCALENDAR\n" ++ foldr (++) "" (map printProp x) ++ foldr (++) "" (map printEvent y) ++ "END:VCALENDAR\n"
 
 printProp :: CalProp -> String
 printProp (ProdId s) = "PRODID:" ++ s ++ "\n"
 printProp (Version) = "VERSION:2.0" ++ "\n"
 
 printEvent :: Event -> String
-printEvent (Event x) = "BEGIN:VEVENT" ++ foldr (++) "" (map printEventProp x) ++ "END:VEVENT"
+printEvent (Event x) = "BEGIN:VEVENT\n" ++ foldr (++) "" (map printEventProp x) ++ "END:VEVENT\n"
 
 printEventProp :: EventProperty -> String
 printEventProp (DTStamp dt) = "DTSTAMP:" ++ printDateTime dt ++ "\n"
 printEventProp (UID s) = "UID:" ++ s ++ "\n"
 printEventProp (DTStart dt) = "DTSTART:" ++ printDateTime dt ++ "\n"
-printEventProp (DTEnd dt) =  "DTEND" ++ printDateTime dt ++ "\n"
+printEventProp (DTEnd dt) =  "DTEND:" ++ printDateTime dt ++ "\n"
 printEventProp (Description s) = "DESCRIPTION:" ++ s ++ "\n"
 printEventProp (Summary s) = "SUMMARY:" ++ s ++ "\n"
 printEventProp (Location s) = "LOCATION:" ++ s ++ "\n"
