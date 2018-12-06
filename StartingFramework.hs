@@ -189,10 +189,10 @@ scanToken = tWithText TBegin "BEGIN:" <|>
             tWithText TLocation "LOCATION:"
 
 tWithText :: (String -> Token) -> String -> Parser Char Token
-tWithText f s = f <$ token s <*> many (notSymbol '\n') <* symbol '\n'
+tWithText f s = f <$ token s <*> many (notSymbol '\n') <* symbol '\r' <* symbol '\n'
 
 tWithDateTime :: (DateTime -> Token) -> String -> Parser Char Token
-tWithDateTime f s = f <$ token s <*> parseDateTime <* symbol '\n'
+tWithDateTime f s = f <$ token s <*> parseDateTime <* symbol '\r' <* symbol '\n'
 
 notSymbol :: Eq s  => s -> Parser s s
 notSymbol x = satisfy (/=x)
@@ -201,19 +201,19 @@ testDateTime :: String
 testDateTime = "20111012T083945"
 
 testCalendar :: String
-testCalendar = "BEGIN:VCALENDAR\n\
-\VERSION:2.0\n\
-\PRODID:www.testMeiCalendar.net\n\
-\BEGIN:VEVENT\n\
-\DTSTART:20101231T230000\n\
-\DTEND:20110101T010000\n\
-\SUMMARY:New Years Eve Reminder\n\
-\LOCATION:Downtown\n\
-\DESCRIPTION:Let's get together for New Years Eve\n\
-\UID:ABCD1234\n\
-\DTSTAMP:20101125T112600\n\
-\END:VEVENT\n\
-\END:VCALENDAR\n\
+testCalendar = "BEGIN:VCALENDAR\r\n\
+\VERSION:2.0\r\n\
+\PRODID:www.testMeiCalendar.net\r\n\
+\BEGIN:VEVENT\r\n\
+\DTSTART:20101231T230000\r\n\
+\DTEND:20110101T010000\r\n\
+\SUMMARY:New Years Eve Reminder\r\n\
+\LOCATION:Downtown\r\n\
+\DESCRIPTION:Let's get together for New Years Eve\r\n\
+\UID:ABCD1234\r\n\
+\DTSTAMP:20101125T112600\r\n\
+\END:VEVENT\r\n\
+\END:VCALENDAR\r\n\
 \"
 
 
@@ -276,23 +276,23 @@ readCalendar z = do
 -- Exercise 9
 -- DO NOT use a derived Show instance. Your printing style needs to be nicer than that :)
 printCalendar :: Calendar -> String
-printCalendar (Calendar x y) = "BEGIN:VCALENDAR\n" ++ foldr (++) "" (map printProp x) ++ foldr (++) "" (map printEvent y) ++ "END:VCALENDAR\n"
+printCalendar (Calendar x y) = "BEGIN:VCALENDAR\r\n" ++ foldr (++) "" (map printProp x) ++ foldr (++) "" (map printEvent y) ++ "END:VCALENDAR\r\n"
 
 printProp :: CalProp -> String
-printProp (ProdId s) = "PRODID:" ++ s ++ "\n"
-printProp (Version) = "VERSION:2.0" ++ "\n"
+printProp (ProdId s) = "PRODID:" ++ s ++ "\r\n"
+printProp (Version) = "VERSION:2.0" ++ "\r\n"
 
 printEvent :: Event -> String
-printEvent (Event x) = "BEGIN:VEVENT\n" ++ foldr (++) "" (map printEventProp x) ++ "END:VEVENT\n"
+printEvent (Event x) = "BEGIN:VEVENT\r\n" ++ foldr (++) "" (map printEventProp x) ++ "END:VEVENT\r\n"
 
 printEventProp :: EventProperty -> String
-printEventProp (DTStamp dt) = "DTSTAMP:" ++ printDateTime dt ++ "\n"
-printEventProp (UID s) = "UID:" ++ s ++ "\n"
-printEventProp (DTStart dt) = "DTSTART:" ++ printDateTime dt ++ "\n"
-printEventProp (DTEnd dt) =  "DTEND:" ++ printDateTime dt ++ "\n"
-printEventProp (Description s) = "DESCRIPTION:" ++ s ++ "\n"
-printEventProp (Summary s) = "SUMMARY:" ++ s ++ "\n"
-printEventProp (Location s) = "LOCATION:" ++ s ++ "\n"
+printEventProp (DTStamp dt) = "DTSTAMP:" ++ printDateTime dt ++ "\r\n"
+printEventProp (UID s) = "UID:" ++ s ++ "\r\n"
+printEventProp (DTStart dt) = "DTSTART:" ++ printDateTime dt ++ "\r\n"
+printEventProp (DTEnd dt) =  "DTEND:" ++ printDateTime dt ++ "\r\n"
+printEventProp (Description s) = "DESCRIPTION:" ++ s ++ "\r\n"
+printEventProp (Summary s) = "SUMMARY:" ++ s ++ "\r\n"
+printEventProp (Location s) = "LOCATION:" ++ s ++ "\r\n"
 
 -- Exercise 10
 countEvents :: Calendar -> Int
