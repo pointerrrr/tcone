@@ -1,5 +1,6 @@
 import ParseLib.Abstract
 import System.Environment
+import Prelude hiding ((<*), (<$))
 
 -- Starting Framework
 
@@ -57,15 +58,66 @@ mainCalendar = do
 
 -- Exercise 1
 parseDateTime :: Parser Char DateTime
-parseDateTime = undefined
+parseDateTime = DateTime <$> parseDate <* symbol 'T' <*> parseTime <*> option isUTC False
+
+--parseDate ::
+
+--Parse Functions for the date
+parseYear :: Parser Char Year
+parseYear = (\a b c d -> Year $ read(a:b:c:[d])) <$> digit <*>  digit <*> digit <*> digit
+
+parseMonth :: Parser Char Month
+parseMonth = (\x y -> Month $ read (x:[y])) <$> digit <*> digit
+
+parseDay :: Parser Char Day
+parseDay = (\x y -> Day $ read (x:[y])) <$> digit <*> digit
+
+parseDate :: Parser Char Date
+parseDate = Date <$> parseYear <*> parseMonth <*> parseDay
+
+
+--Parse funtions for the time
+
+parseHour :: Parser Char Hour
+parseHour = (\x y -> Hour $ read (x:[y])) <$> digit <*> digit
+
+parseMinute :: Parser Char Minute
+parseMinute = (\x y -> Minute $ read (x:[y])) <$> digit <*> digit
+
+parseSecond :: Parser Char Second
+parseSecond = (\x y -> Second $ read (x:[y])) <$> digit <*> digit
+
+parseTime :: Parser Char Time
+parseTime = Time <$> parseHour <*> parseMinute <*> parseSecond
+
+isUTC :: Parser Char Bool
+isUTC = const True <$> symbol 'Z'
+
+--parseDigits ::
+
+
+
 
 -- Exercise 2
 run :: Parser a b -> [a] -> Maybe b
-run = undefined
+run p xs = if (null f)
+                then Nothing
+                else Just (fst(head f))
+            where f = filter(\(_,b) -> null b) (parse p xs)
 
 -- Exercise 3
 printDateTime :: DateTime -> String
-printDateTime = undefined
+printDateTime  = undefined
+
+instance Show Date where
+    show (Date x y z) = addZero 4 (show(unYear x)) ++ addZero 2 (show(unMonth y)) ++ addZero 2 (show(unDay z))
+
+instance Show Time where
+    show (Time x y z) = addZero 4 (show(unHour x)) ++ addZero 2 (show(unMinute y)) ++ addZero 2 (show(unSecond z))
+
+addZero :: Int -> String -> String
+addZero x y | length (y) < 0 = addZero x ("0" ++ y)
+            | otherwise = y
 
 -- Exercise 4
 parsePrint s = fmap printDateTime $ run parseDateTime s
