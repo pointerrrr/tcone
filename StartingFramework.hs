@@ -1,6 +1,8 @@
+import System.IO
 import ParseLib.Abstract
 import System.Environment
 import Data.Char
+
 import Prelude hiding ((<*), (<$), (*>))
 
 -- Starting Framework
@@ -265,7 +267,11 @@ recognizeCalendar s = run scanCalendar s >>= run parseCalendar
 
 -- Exercise 8
 readCalendar :: FilePath -> IO (Maybe Calendar)
-readCalendar = undefined
+readCalendar z = do
+        x <- openFile z ReadMode
+        y <- hGetContents x
+        return (recognizeCalendar y)
+             
 
 -- Exercise 9
 -- DO NOT use a derived Show instance. Your printing style needs to be nicer than that :)
