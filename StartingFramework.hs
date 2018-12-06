@@ -125,10 +125,10 @@ parsePrint s = fmap printDateTime $ run parseDateTime s
 
 -- Exercise 5
 checkDateTime :: DateTime -> Bool
-checkDateTime (DateTime a b _) = checkDate a && checkDateTime b
+checkDateTime (DateTime a b _) = checkDate a && checkTime b
 
 checkDate :: Date -> Bool
-checkDate (Date y m d) = y < (Year 10000) && y > (Year 1000) && m < (Month 13) -- && validDay y m d
+checkDate (Date y m d) = y < (Year 10000) && y > (Year 1000) && m < (Month 13) && validDay y m d
 
 monthDayList = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 
@@ -142,7 +142,7 @@ isLeap y = (y `mod` 4 == 0 && y `mod` 100 /= 0 ) || (y `mod` 400 == 0)
 
 
 checkTime :: Time -> Bool
-checkTime (Time (Hour h) (Minute m) (Second s)) = h < 13 && m < 60 && s < 60
+checkTime (Time (Hour h) (Minute m) (Second s)) = h < 24 && m < 60 && s < 60
 
 -- Exercise 6
 data Calendar = Calendar
