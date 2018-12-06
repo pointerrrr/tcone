@@ -53,11 +53,11 @@ mainDateTime = interact (printOutput . processCheck . processInput)
         processCheck = map (maybe SyntaxError (\x -> if checkDateTime x then Valid x else Invalid x))
         printOutput  = unlines . map show
 
-mainCalendar :: IO ()
-mainCalendar = do
-    file:_ <- getArgs
-    res <- readCalendar file
-    putStrLn $ maybe "Calendar parsing error" (ppMonth (Year 2012) (Month 11)) res
+--mainCalendar :: IO ()
+--mainCalendar = do
+ --   file:_ <- getArgs
+ --   res <- readCalendar file
+--    putStrLn $ maybe "Calendar parsing error" (ppMonth (Year 2012) (Month 11)) res
 
 -- Exercise 1
 parseDateTime :: Parser Char DateTime
@@ -266,11 +266,13 @@ recognizeCalendar :: String -> Maybe Calendar
 recognizeCalendar s = run scanCalendar s >>= run parseCalendar
 
 -- Exercise 8
-readCalendar :: FilePath -> IO (Maybe Calendar)
+readCalendar :: FilePath -> IO ()
 readCalendar z = do
         x <- openFile z ReadMode
+        --hSetNewlineMode x noNewlineTranslation
         y <- hGetContents x
-        return (recognizeCalendar y)
+        print y
+        --return (recognizeCalendar y)
              
 
 -- Exercise 9
