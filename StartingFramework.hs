@@ -146,6 +146,7 @@ data Calendar = Calendar {calprop :: [CalProp], event :: [Event]}
 
 data CalProp = ProdID String | Version
     deriving (Eq, Ord, Show)
+    
 
 data Event = Event {eventProp :: [EventProperty]}
     deriving (Eq, Ord, Show)
