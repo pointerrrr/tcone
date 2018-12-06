@@ -159,8 +159,8 @@ data EventProperty = DTStamp DateTime | UID String | DTStart DateTime | DTEnd Da
 -- Exercise 7
 data Token = TBegin String
            | TEnd String
-           | TProdId {unStringI :: String }
-           | TVersion {unStringV :: String} 
+           | TProdId String
+           | TVersion String
            | TDtStamp DateTime
            | TUID String
            | TDtStart DateTime
@@ -195,8 +195,11 @@ tWithDateTime f s = f <$ token s <*> parseDateTime <* symbol '\n'
 notSymbol :: Eq s  => s -> Parser s s
 notSymbol x = satisfy (/=x)
 
-test :: String
-test = "BEGIN:VCALENDAR\n\
+testDateTime :: String
+testDateTime = "20111012T083945"
+
+testCalendar :: String
+testCalendar = "BEGIN:VCALENDAR\n\
 \VERSION:2.0\n\
 \PRODID:www.testMeiCalendar.net\n\
 \BEGIN:VEVENT\n\
@@ -232,32 +235,30 @@ parseVersion :: Parser Token CalProp
 parseVersion = Version <$ token ([TVersion "2.0"])
 
 parseEvent :: Parser Token Event
-parseEvent = Event <$ symbol ( TBegin "EVENT") <*> many parseEventProp <* symbol (TEnd "EVENT")
+parseEvent = Event <$ symbol ( TBegin "VEVENT") <*> many parseEventProp <* symbol (TEnd "VEVENT")
 
--- DTStamp DateTime | UID String | DTStart DateTime | DTEnd DateTime | Description String | Summary String | Location String
 parseEventProp :: Parser Token EventProperty
-parseEventProp = parseDTStamp <|> parseUID <|> parseDTStart <|> parseDTEnd <|> parseDescription <|> parseSummary <|> parseLocation
+parseEventProp = tokenToEventProp <$> satisfy isValidEventPropToken
 
-parseDTStamp :: Parser Token EventProperty
-parseDTStamp = undefined
+tokenToEventProp :: Token -> EventProperty
+tokenToEventProp (TDtStamp dt) = DTStamp dt
+tokenToEventProp (TUID s) = UID s
+tokenToEventProp (TDtStart dt) = DTStart dt
+tokenToEventProp (TDtEnd dt) = DTEnd dt
+tokenToEventProp (TDescription s) = Description s
+tokenToEventProp (TSummary s) = Summary s
+tokenToEventProp (TLocation s) = Location s
+tokenToEventProp _  = undefined 
 
-parseUID :: Parser Token EventProperty
-parseUID = undefined
-
-parseDTStart :: Parser Token EventProperty
-parseDTStart = undefined
-
-parseDTEnd :: Parser Token EventProperty
-parseDTEnd = undefined
-
-parseDescription :: Parser Token EventProperty
-parseDescription = undefined
-
-parseSummary :: Parser Token EventProperty
-parseSummary = undefined
-
-parseLocation :: Parser Token EventProperty
-parseLocation = undefined
+isValidEventPropToken :: Token -> Bool
+isValidEventPropToken (TDtStamp _)     = True
+isValidEventPropToken (TUID _)         = True
+isValidEventPropToken (TDtStart _)     = True
+isValidEventPropToken (TDtEnd _)       = True
+isValidEventPropToken (TDescription _) = True
+isValidEventPropToken (TSummary _)     = True
+isValidEventPropToken (TLocation _)    = True
+isValidEventPropToken _                = False
 
 recognizeCalendar :: String -> Maybe Calendar
 recognizeCalendar s = run scanCalendar s >>= run parseCalendar
@@ -269,7 +270,17 @@ readCalendar = undefined
 -- Exercise 9
 -- DO NOT use a derived Show instance. Your printing style needs to be nicer than that :)
 printCalendar :: Calendar -> String
-printCalendar = undefined
+printCalendar (Calendar x y) = "BEGIN:VCALENDAR" ++ foldr (++) "" (map printProp x) ++ foldr (++) "" (map printEvent y) ++ "END:VCALENDAR"
+
+printProp :: CalProp -> String
+printProp (ProdId s) = "PRODID:" ++ s ++ "\n"
+printProp (Version) = "VERSION:2.0" ++ "\n"
+
+printEvent :: Event -> String
+printEvent (Event x) = "BEGIN:VEVENT" ++ foldr (++) "" (map printEventProp x) ++ "END:VEVENT"
+
+printEventProp :: EventProperty -> String
+printEventProp = undefined
 
 -- Exercise 10
 countEvents :: Calendar -> Int
