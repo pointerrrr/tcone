@@ -369,10 +369,15 @@ containsProperty (Event e) p = elem p e
 ppMonth :: Year -> Month -> Calendar -> String
 ppMonth = undefined
 
+getEvents :: Calendar -> [Event]
+getEvents (Calendar _ e) = e
+
+getNumberOfEvents :: [[a]] -> Int
+getNumberOfEvents x = maximum $ map length x
 --generateEventList :: [Event] -> [DateTime]
 
-getCorrectList :: [(DateTime,DateTime, EventProperty)] -> [(DateTime,DateTime, EventProperty)] -> [[DateTime]]
-getCorrectList a b = map (\x -> map () b) a
+getCorrectList :: [(DateTime,DateTime, EventProperty)] -> [(DateTime,DateTime, EventProperty)] -> [[(DateTime,DateTime,EventProperty)]]
+getCorrectList a b = map (\x -> filter (isOverlapping x) b) a
 
 generateEventDateTimeList :: [Event] -> [(DateTime,DateTime, EventProperty)]
 generateEventDateTimeList y = map (\x -> (startTimeEvent x, endTimeEvent x, getUID x)) y
@@ -392,6 +397,23 @@ generateDateTime :: Int -> Int -> Int -> Int -> DateTime
 generateDateTime year month day numberOfDays    | day > numberOfDays && month == 12 = DateTime (Date (Year (year + 1)) (Month 1) (Day 1)) (Time (Hour 00) (Minute 00) (Second 00)) True 
                                                 | day > numberOfDays = DateTime (Date (Year year) (Month (month + 1)) (Day 1)) (Time (Hour 00) (Minute 00) (Second 00)) True 
                                                 | otherwise =  DateTime (Date (Year year) (Month month) (Day day)) (Time (Hour 00) (Minute 00) (Second 00)) True 
+
+getTime :: DateTime -> String
+getTime (DateTime _ (Time hour minute second) _) ="|" ++ addZero 2 (show (unHour hour)) ++ ":" ++ addZero 2 (show (unMinute minute)) ++ "|"
+
+pprintDays :: [[(DateTime,DateTime, EventProperty)]] -> [[String]]
+pprintDays a = map (\x -> map pprintEvent x) a
+
+pprintEvent :: (DateTime,DateTime, EventProperty) -> String
+pprintEvent (start,end,_) = getTime start ++ " - " ++ getTime end
+
+
+--Printing constants
+printWeekdays :: String
+printWeekdays = "Monday        |Tuesday       |Wednesday     |Thursday      |Friday        |Saturday      |Sunday        "
+
+printDivision :: String
+printDivision = "--------------|--------------|--------------|--------------|--------------|--------------|--------------"
 
 -- testing constants
 testDateTime :: String
