@@ -2,6 +2,9 @@ import System.IO
 import ParseLib.Abstract
 import System.Environment
 import Data.Char
+import Data.Traversable
+import Data.Maybe
+import Control.Monad
 
 import Prelude hiding ((<*), (<$), (*>))
 
@@ -186,10 +189,17 @@ scanToken = tWithText TBegin "BEGIN:" <|>
             tWithDateTime TDtEnd "DTEND:" <|>
             tWithText TDescription "DESCRIPTION:" <|>
             tWithText TSummary "SUMMARY:" <|>
-            tWithText TLocation "LOCATION:"
+            tWithText TLocation "LOCATION:" <|>
+            tWithTextExtra tDescriptionS "DESCRIPTION:"
+
+tDescriptionS :: String -> [String] -> Token
+tDescriptionS s1 s2 = TDescription (foldl (++) s1 s2)
 
 tWithText :: (String -> Token) -> String -> Parser Char Token
 tWithText f s = f <$ token s <*> many (notSymbol '\r') <* symbol '\r' <* symbol '\n'
+
+tWithTextExtra :: (String -> [String] -> Token) -> String -> Parser Char Token
+tWithTextExtra f s = f <$ token s <*> many (notSymbol '\r') <* symbol '\r' <* symbol '\n' <* symbol ' ' <*> many ( some (notSymbol '\r') <* symbol '\r' <* symbol '\n')
 
 tWithDateTime :: (DateTime -> Token) -> String -> Parser Char Token
 tWithDateTime f s = f <$ token s <*> parseDateTime <* symbol '\r' <* symbol '\n'
@@ -208,7 +218,7 @@ testCalendar = "BEGIN:VCALENDAR\r\n\
 \DTSTART:20101231T230000\r\n\
 \DTEND:20110101T010000\r\n\
 \SUMMARY:New Years Eve Reminder\n\
-\asdf\r\n\
+\ asdf\r\n\
 \LOCATION:Downtown\r\n\
 \DESCRIPTION:Let's get together for New Years Eve\r\n\
 \UID:ABCD1234\r\n\
@@ -270,6 +280,7 @@ recognizeCalendar s = run scanCalendar s >>= run parseCalendar
 readCalendar :: FilePath -> IO (Maybe Calendar)
 readCalendar z = do
         x <- openFile z ReadWriteMode
+        hSetNewlineMode x noNewlineTranslation
         y <- hGetContents x
         return (recognizeCalendar y)
 
