@@ -2,6 +2,7 @@ import System.IO
 import ParseLib.Abstract
 import System.Environment
 import Data.Char
+import Data.List
 import Data.Traversable
 import Data.Maybe
 import Control.Monad
@@ -360,7 +361,53 @@ timeSpent :: String -> Calendar -> Int
 timeSpent s (Calendar _ e) = calculateTime $ filter (\x -> containsProperty x (Summary s)) e
 
 calculateTime :: [Event] -> Int
-calculateTime e = 0 --length $ mergeOverlapping e
+calculateTime e = totalTime $ mergeOverlapping $ map (\x -> (startTimeEvent x, endTimeEvent x, getUID x)) e
+
+totalTime :: [(DateTime, DateTime, EventProperty)] -> Int
+totalTime [] = 0
+totalTime (x:xs)= minutesIn x + totalTime xs 
+
+minutesIn :: (DateTime, DateTime, EventProperty) -> Int
+minutesIn (x1, x2, _) = (secondsFromZero x2 - secondsFromZero x1) `div` 60
+
+secondsFromZero :: DateTime -> Int
+secondsFromZero (DateTime (Date (Year x1) (Month x2) (Day x3)) (Time (Hour x4) (Minute x5) (Second x6)) _) = x6 + x5 * 60 + x4 * 3600 + x3 * 86400 + (daysInMonths x2) * 2592000 + x1 * 31536000 + (amountOfLeapYear x1) * 86400
+
+amountOfLeapYear :: Int -> Int
+amountOfLeapYear x = x `div` 4 - x `div` 400
+
+daysInMonths :: Int -> Int
+daysInMonths 1 = 31
+daysInMonths 2 = 28 + daysInMonths 1
+daysInMonths 3 = 31 + daysInMonths 2
+daysInMonths 4 = 30 + daysInMonths 3
+daysInMonths 5 = 31 + daysInMonths 4
+daysInMonths 6 = 30 + daysInMonths 5
+daysInMonths 7 = 31 + daysInMonths 6
+daysInMonths 8 = 31 + daysInMonths 7
+daysInMonths 9 = 30 + daysInMonths 8
+daysInMonths 10 = 31 + daysInMonths 9
+daysInMonths 11 = 30 + daysInMonths 10
+daysInMonths 12 = 31 + daysInMonths 11
+
+mergeOverlapping :: [(DateTime, DateTime, EventProperty)] -> [(DateTime,DateTime, EventProperty)]
+mergeOverlapping [] = []
+mergeOverlapping ((x1,x2,x3):xs) = if (or $ map (isOverlapping (x1, x2, x3)) xs)
+                                    then mergeTime (x1,x2,x3) ( head ( filter (isOverlapping (x1,x2,x3)) xs ) ) : mergeOverlapping (delete (head ( filter (isOverlapping (x1,x2,x3)) xs )) xs)
+                                    else (x1,x2,x3) : mergeOverlapping xs
+
+mergeTime :: (DateTime, DateTime, EventProperty) -> (DateTime, DateTime, EventProperty) -> (DateTime, DateTime, EventProperty)
+mergeTime (x1,x2,x3) (y1,y2,y3) = (smallestTime x1 y1, biggestTime x2 y2, UID "0")
+
+smallestTime :: DateTime -> DateTime -> DateTime
+smallestTime x y = if (x<y)
+                    then x
+                    else y
+
+biggestTime :: DateTime -> DateTime -> DateTime
+biggestTime x y = if (x>y)
+                    then x
+                    else y
 
 containsProperty :: Event -> EventProperty -> Bool
 containsProperty (Event e) p = elem p e
