@@ -6,8 +6,12 @@ import Data.List
 import Data.Traversable
 import Data.Maybe
 import Control.Monad
+import Text.PrettyPrint
+import Data.Time.Calendar hiding (Day)
+import Data.Time.Calendar.WeekDate
 
 import Prelude hiding ((<*), (<$), (*>))
+import Data.Time.Calendar hiding (Day)
 
 -- Starting Framework
 
@@ -412,8 +416,29 @@ containsProperty (Event e) p = elem p e
 ppMonth :: Year -> Month -> Calendar -> String
 ppMonth = undefined
 
+--generateEventList :: [Event] -> [DateTime]
+
+getCorrectList :: [(DateTime,DateTime, EventProperty)] -> [(DateTime,DateTime, EventProperty)] -> [[DateTime]]
+getCorrectList a b = map (\x -> map () b) a
+
+generateEventDateTimeList :: [Event] -> [(DateTime,DateTime, EventProperty)]
+generateEventDateTimeList y = map (\x -> (startTimeEvent x, endTimeEvent x, getUID x)) y
 
 
+generateDateTimeList :: Year -> Month -> [(DateTime,DateTime, EventProperty)]
+generateDateTimeList (Year y) (Month m) = getListDateTime numberOfDays 0 y m
+                                where numberOfDays = gregorianMonthLength (toInteger y) m
+
+getListDateTime :: Int -> Int -> Int -> Int -> [(DateTime,DateTime, EventProperty)]
+getListDateTime n c y m | c < n = [(q,r,(UID "Bullshit"))] ++ getListDateTime n (c+1) y m
+                        | otherwise = []
+                    where   q = generateDateTime y m (c+1) n
+                            r = generateDateTime y m (c+2) n  
+
+generateDateTime :: Int -> Int -> Int -> Int -> DateTime
+generateDateTime year month day numberOfDays    | day > numberOfDays && month == 12 = DateTime (Date (Year (year + 1)) (Month 1) (Day 1)) (Time (Hour 00) (Minute 00) (Second 00)) True 
+                                                | day > numberOfDays = DateTime (Date (Year year) (Month (month + 1)) (Day 1)) (Time (Hour 00) (Minute 00) (Second 00)) True 
+                                                | otherwise =  DateTime (Date (Year year) (Month month) (Day day)) (Time (Hour 00) (Minute 00) (Second 00)) True 
 
 -- testing constants
 testDateTime :: String
