@@ -414,53 +414,10 @@ containsProperty (Event e) p = elem p e
 
 -- Exercise 11
 ppMonth :: Year -> Month -> Calendar -> String
-ppMonth = undefined
-
-getEvents :: Calendar -> [Event]
-getEvents (Calendar _ e) = e
-
-getNumberOfEvents :: [[a]] -> Int
-getNumberOfEvents x = maximum $ map length x
---generateEventList :: [Event] -> [DateTime]
-
-getCorrectList :: [(DateTime,DateTime, EventProperty)] -> [(DateTime,DateTime, EventProperty)] -> [[(DateTime,DateTime,EventProperty)]]
-getCorrectList a b = map (\x -> filter (isOverlapping x) b) a
-
-generateEventDateTimeList :: [Event] -> [(DateTime,DateTime, EventProperty)]
-generateEventDateTimeList y = map (\x -> (startTimeEvent x, endTimeEvent x, getUID x)) y
+ppMonth (Year y) (Month m) (Calendar _ e) = show $ filter (\x -> (unMonth $ month $date (startTimeEvent x)) == m ) e
 
 
-generateDateTimeList :: Year -> Month -> [(DateTime,DateTime, EventProperty)]
-generateDateTimeList (Year y) (Month m) = getListDateTime numberOfDays 0 y m
-                                where numberOfDays = gregorianMonthLength (toInteger y) m
 
-getListDateTime :: Int -> Int -> Int -> Int -> [(DateTime,DateTime, EventProperty)]
-getListDateTime n c y m | c < n = [(q,r,(UID "Bullshit"))] ++ getListDateTime n (c+1) y m
-                        | otherwise = []
-                    where   q = generateDateTime y m (c+1) n
-                            r = generateDateTime y m (c+2) n  
-
-generateDateTime :: Int -> Int -> Int -> Int -> DateTime
-generateDateTime year month day numberOfDays    | day > numberOfDays && month == 12 = DateTime (Date (Year (year + 1)) (Month 1) (Day 1)) (Time (Hour 00) (Minute 00) (Second 00)) True 
-                                                | day > numberOfDays = DateTime (Date (Year year) (Month (month + 1)) (Day 1)) (Time (Hour 00) (Minute 00) (Second 00)) True 
-                                                | otherwise =  DateTime (Date (Year year) (Month month) (Day day)) (Time (Hour 00) (Minute 00) (Second 00)) True 
-
-getTime :: DateTime -> String
-getTime (DateTime _ (Time hour minute second) _) ="|" ++ addZero 2 (show (unHour hour)) ++ ":" ++ addZero 2 (show (unMinute minute)) ++ "|"
-
-pprintDays :: [[(DateTime,DateTime, EventProperty)]] -> [[String]]
-pprintDays a = map (\x -> map pprintEvent x) a
-
-pprintEvent :: (DateTime,DateTime, EventProperty) -> String
-pprintEvent (start,end,_) = getTime start ++ " - " ++ getTime end
-
-
---Printing constants
-printWeekdays :: String
-printWeekdays = "Monday        |Tuesday       |Wednesday     |Thursday      |Friday        |Saturday      |Sunday        "
-
-printDivision :: String
-printDivision = "--------------|--------------|--------------|--------------|--------------|--------------|--------------"
 
 -- testing constants
 testDateTime :: String
