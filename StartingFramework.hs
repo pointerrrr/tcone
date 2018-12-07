@@ -203,43 +203,44 @@ tWithDateTime f s = f <$ token s <*> parseDateTime <* symbol '\r' <* symbol '\n'
 notSymbol :: Eq s  => s -> Parser s s
 notSymbol x = satisfy (/=x)
 
-testDateTime :: String
-testDateTime = "20111012T083945"
-
-testCalendar :: String
-testCalendar = "BEGIN:VCALENDAR\r\n\
-\VERSION:2.0\r\n\
-\PRODID:www.testMeiCalendar.net\r\n\
-\BEGIN:VEVENT\r\n\
-\DTSTART:20101231T230000\r\n\
-\DTEND:20110101T010000\r\n\
-\SUMMARY:New Years Eve Reminder\n\
-\LOCATION:Downtown\r\n\
-\DESCRIPTION:Let's get together for New Years Eve\r\n\
-\UID:ABCD1234\r\n\
-\DTSTAMP:20101125T112600\r\n\
-\END:VEVENT\r\n\
-\END:VCALENDAR\r\n\
-\"
-
-testCalendar2 :: String
-testCalendar2 = "BEGIN:VCALENDAR\r\n\
-\VERSION:2.0\r\n\
-\PRODID:-//hacksw/handcal//NONSGML v1.0//EN\r\n\
-\BEGIN:VEVENT\r\n\
-\UID:12345@example.com\r\n\
-\DTSTAMP:20111205T170000Z\r\n\
-\DTSTART:20111205T170000Z\r\n\
-\DTEND:20111205T210000Z\r\n\
-\SUMMARY:This is a very long description th\r\n\
-\ that runs over multiple lines.\r\n\
-\  A third one even.\r\n\
-\END:VEVENT\r\n\
-\END:VCALENDAR\r\n"
-
-
 parseCalendar :: Parser Token Calendar
-parseCalendar = Calendar <$ symbol (TBegin "VCALENDAR") <*> many parseCalProp <*> many parseEvent <* symbol (TEnd "VCALENDAR")
+parseCalendar = validCalendar <$ symbol (TBegin "VCALENDAR") <*> many parseCalProp <*> many parseEvent <* symbol (TEnd "VCALENDAR")
+
+validCalendar :: [CalProp] -> [Event] -> Calendar
+validCalendar p e = if (validProps p && and (map validEventProps e))
+                        then Calendar p e
+                        else error "wrong calendar format"
+
+validProps :: [CalProp] -> Bool
+validProps p = length p == 2 && not(isProp (p !! 0) (p !! 1))
+
+validEventProps :: Event -> Bool
+validEventProps (Event e) = (and (map (\x -> (numTimesFound x e) == 1) [DTStamp dateTimeNull, UID "", DTStart dateTimeNull, DTEnd dateTimeNull])) && (and (map (\x -> (numTimesFound x e) <= 1) [Description "", Summary "", Location ""]))
+
+--data EventProperty = DTStamp DateTime | UID String | DTStart DateTime | DTEnd DateTime | Description String | Summary String | Location String
+
+dateTimeNull :: DateTime
+dateTimeNull = DateTime (Date (Year 2000) (Month 01) (Day 01)) (Time (Hour 00) (Minute 00) (Second 00)) True
+
+isProp :: CalProp -> CalProp -> Bool
+isProp (Version) (Version) = True
+isProp (ProdId _) (ProdId _) = True
+isProp _ _ = False
+
+isEventProp :: EventProperty -> EventProperty -> Bool
+isEventProp (DTStamp _) (DTStamp _) = True
+isEventProp (UID _) (UID _) = True
+isEventProp (DTStart _) (DTStart _) = True
+isEventProp (DTEnd _) (DTEnd _) = True
+isEventProp (Description _) (Description _) = True
+isEventProp (Summary _) (Summary _) = True
+isEventProp (Location _) (Location _) = True
+isEventProp _ _ = False
+
+-- elem counter from https://codereview.stackexchange.com/questions/139587/count-occurrences-of-an-element-in-a-list
+numTimesFound :: EventProperty -> [EventProperty] -> Int
+numTimesFound _ [] = 0
+numTimesFound x xs = (length . filter (isEventProp x)) xs
 
 parseCalProp :: Parser Token CalProp
 parseCalProp = parseProdId <|> parseVersion
@@ -341,3 +342,41 @@ timeSpent = undefined
 ppMonth :: Year -> Month -> Calendar -> String
 ppMonth = undefined
 
+
+
+
+-- testing constants
+testDateTime :: String
+testDateTime = "20111012T083945"
+
+testCalendar :: String
+testCalendar = "BEGIN:VCALENDAR\r\n\
+\VERSION:2.0\r\n\
+\PRODID:www.testMeiCalendar.net\r\n\
+\BEGIN:VEVENT\r\n\
+\DTSTART:20101231T230000\r\n\
+\DTEND:20110101T010000\r\n\
+\SUMMARY:New Years Eve Reminder\n\
+\LOCATION:Downtown\r\n\
+\DESCRIPTION:Let's get together for New Years Eve\r\n\
+\UID:ABCD1234\r\n\
+\DTSTAMP:20101125T112600\r\n\
+\END:VEVENT\r\n\
+\END:VCALENDAR\r\n\
+\"
+
+testCalendar2 :: String
+testCalendar2 = "BEGIN:VCALENDAR\r\n\
+\VERSION:2.0\r\n\
+\PRODID:-//hacksw/handcal//NONSGML v1.0//EN\r\n\
+\BEGIN:VEVENT\r\n\
+\UID:12345@example.com\r\n\
+\DTSTAMP:20111205T170000Z\r\n\
+\DTSTART:20111205T170000Z\r\n\
+\DTEND:20111205T210000Z\r\n\
+\DTEND:20111205T210000Z\r\n\
+\SUMMARY:This is a very long description th\r\n\
+\ at runs over multiple lines.\r\n\
+\  A third one even.\r\n\
+\END:VEVENT\r\n\
+\END:VCALENDAR\r\n"
