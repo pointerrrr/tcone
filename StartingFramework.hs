@@ -217,11 +217,6 @@ validProps p = length p == 2 && not(isProp (p !! 0) (p !! 1))
 validEventProps :: Event -> Bool
 validEventProps (Event e) = (and (map (\x -> (numTimesFound x e) == 1) [DTStamp dateTimeNull, UID "", DTStart dateTimeNull, DTEnd dateTimeNull])) && (and (map (\x -> (numTimesFound x e) <= 1) [Description "", Summary "", Location ""]))
 
---data EventProperty = DTStamp DateTime | UID String | DTStart DateTime | DTEnd DateTime | Description String | Summary String | Location String
-
-dateTimeNull :: DateTime
-dateTimeNull = DateTime (Date (Year 2000) (Month 01) (Day 01)) (Time (Hour 00) (Minute 00) (Second 00)) True
-
 isProp :: CalProp -> CalProp -> Bool
 isProp (Version) (Version) = True
 isProp (ProdId _) (ProdId _) = True
@@ -327,16 +322,44 @@ printEventProp (Location s) = "LOCATION:" ++ s ++ "\r\n"
 
 -- Exercise 10
 countEvents :: Calendar -> Int
-countEvents = undefined
+countEvents (Calendar p e) = length e
 
 findEvents :: DateTime -> Calendar -> [Event]
-findEvents = undefined
+findEvents dt (Calendar _ e) = filter (\x -> startTimeEvent x <= dt && endTimeEvent x > dt ) e
+
+startTimeEvent :: Event -> DateTime
+startTimeEvent (Event p) = timeOfProperty $ head $ filter (\x -> isEventProp (DTStart dateTimeNull) x) p
+
+endTimeEvent :: Event -> DateTime
+endTimeEvent (Event p) = timeOfProperty $ head $ filter (\x -> isEventProp (DTEnd dateTimeNull) x) p
+
+timeOfProperty :: EventProperty -> DateTime
+timeOfProperty (DTStart t) = t
+timeOfProperty (DTEnd t) = t
+timeOfProperty (DTStamp t) = t
+timeOfProperty _ = dateTimeNull
 
 checkOverlapping :: Calendar -> Bool
-checkOverlapping = undefined
+checkOverlapping (Calendar _ e) = or $ map (\x -> or $ map (isOverlapping x) dtpairs) dtpairs
+                            where dtpairs = map (\x -> (startTimeEvent x, endTimeEvent x, getUID x)) e
+
+getUID :: Event -> EventProperty
+getUID (Event p) = head $ filter (\x -> isEventProp (UID "") x) p
+
+getSummary :: Event -> EventProperty
+getSummary (Event p) = head $ filter (\x -> isEventProp (Summary "") x) p
+
+isOverlapping :: (DateTime, DateTime, EventProperty) -> (DateTime, DateTime, EventProperty) -> Bool
+isOverlapping (dts1, dte1, id1) (dts2, dte2, id2) = ((dts2 < dte1 && dts2 >= dts1) || (dts1 < dte2 && dts1 >= dts2)) && id1 /= id2
 
 timeSpent :: String -> Calendar -> Int
-timeSpent = undefined
+timeSpent s (Calendar _ e) = calculateTime $ filter (\x -> containsProperty x (Summary s)) e
+
+calculateTime :: [Event] -> Int
+calculateTime e = 0 --length $ mergeOverlapping e
+
+containsProperty :: Event -> EventProperty -> Bool
+containsProperty (Event e) p = elem p e
 
 -- Exercise 11
 ppMonth :: Year -> Month -> Calendar -> String
@@ -349,6 +372,15 @@ ppMonth = undefined
 testDateTime :: String
 testDateTime = "20111012T083945"
 
+dateTimeNull :: DateTime
+dateTimeNull = DateTime (Date (Year 2000) (Month 01) (Day 01)) (Time (Hour 00) (Minute 00) (Second 00)) True
+
+dateTimeNull2 :: DateTime
+dateTimeNull2 = DateTime (Date (Year 2000) (Month 01) (Day 01)) (Time (Hour 10) (Minute 00) (Second 00)) True
+
+dateTimeNull3 :: DateTime
+dateTimeNull3 = DateTime (Date (Year 2000) (Month 01) (Day 01)) (Time (Hour 13) (Minute 00) (Second 00)) True
+
 testCalendar :: String
 testCalendar = "BEGIN:VCALENDAR\r\n\
 \VERSION:2.0\r\n\
@@ -356,7 +388,7 @@ testCalendar = "BEGIN:VCALENDAR\r\n\
 \BEGIN:VEVENT\r\n\
 \DTSTART:20101231T230000\r\n\
 \DTEND:20110101T010000\r\n\
-\SUMMARY:New Years Eve Reminder\n\
+\SUMMARY:New Years Eve Reminder\r\n\
 \LOCATION:Downtown\r\n\
 \DESCRIPTION:Let's get together for New Years Eve\r\n\
 \UID:ABCD1234\r\n\
@@ -380,3 +412,7 @@ testCalendar2 = "BEGIN:VCALENDAR\r\n\
 \  A third one even.\r\n\
 \END:VEVENT\r\n\
 \END:VCALENDAR\r\n"
+
+testCalendar3 :: Calendar
+testCalendar3 = (Calendar {calprop = [Version,ProdId "www.testMeiCalendar.net"], event = [Event {eventProp = [DTStart dateTimeNull,DTEnd dateTimeNull2,Summary "New Years Eve Reminder", Location "Downtown",Description "Let's get together for New Years Eve",UID "ABCD1234",DTStamp dateTimeNull]}
+                                                                                         ,Event {eventProp = [DTStart dateTimeNull,DTEnd dateTimeNull3,Summary "New Years Eve Reminder", Location "Downtown",Description "Let's get together for New Years Eve",UID "ABCD12345",DTStamp dateTimeNull]}]})
