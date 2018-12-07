@@ -189,17 +189,13 @@ scanToken = tWithText TBegin "BEGIN:" <|>
             tWithDateTime TDtEnd "DTEND:" <|>
             tWithText TDescription "DESCRIPTION:" <|>
             tWithText TSummary "SUMMARY:" <|>
-            tWithText TLocation "LOCATION:" <|>
-            tWithTextExtra tDescriptionS "DESCRIPTION:"
+            tWithText TLocation "LOCATION:"
 
-tDescriptionS :: String -> [String] -> Token
-tDescriptionS s1 s2 = TDescription (foldl (++) s1 s2)
+multiLineTextConstructor :: (String -> Token) -> [String] -> String -> Token
+multiLineTextConstructor f s1 s2 = f (foldr (++) s2 s1)
 
 tWithText :: (String -> Token) -> String -> Parser Char Token
-tWithText f s = f <$ token s <*> many (notSymbol '\r') <* symbol '\r' <* symbol '\n'
-
-tWithTextExtra :: (String -> [String] -> Token) -> String -> Parser Char Token
-tWithTextExtra f s = f <$ token s <*> many (notSymbol '\r') <* symbol '\r' <* symbol '\n' <* symbol ' ' <*> many ( some (notSymbol '\r') <* symbol '\r' <* symbol '\n')
+tWithText f s = (multiLineTextConstructor f) <$ token s <*> many ( many (notSymbol '\r') <* symbol '\r' <* symbol '\n' <* symbol ' ') <*> ( some (notSymbol '\r') <* symbol '\r' <* symbol '\n')
 
 tWithDateTime :: (DateTime -> Token) -> String -> Parser Char Token
 tWithDateTime f s = f <$ token s <*> parseDateTime <* symbol '\r' <* symbol '\n'
@@ -218,7 +214,6 @@ testCalendar = "BEGIN:VCALENDAR\r\n\
 \DTSTART:20101231T230000\r\n\
 \DTEND:20110101T010000\r\n\
 \SUMMARY:New Years Eve Reminder\n\
-\ asdf\r\n\
 \LOCATION:Downtown\r\n\
 \DESCRIPTION:Let's get together for New Years Eve\r\n\
 \UID:ABCD1234\r\n\
@@ -226,6 +221,21 @@ testCalendar = "BEGIN:VCALENDAR\r\n\
 \END:VEVENT\r\n\
 \END:VCALENDAR\r\n\
 \"
+
+testCalendar2 :: String
+testCalendar2 = "BEGIN:VCALENDAR\r\n\
+\VERSION:2.0\r\n\
+\PRODID:-//hacksw/handcal//NONSGML v1.0//EN\r\n\
+\BEGIN:VEVENT\r\n\
+\UID:12345@example.com\r\n\
+\DTSTAMP:20111205T170000Z\r\n\
+\DTSTART:20111205T170000Z\r\n\
+\DTEND:20111205T210000Z\r\n\
+\SUMMARY:This is a very long description th\r\n\
+\ that runs over multiple lines.\r\n\
+\  A third one even.\r\n\
+\END:VEVENT\r\n\
+\END:VCALENDAR\r\n"
 
 
 parseCalendar :: Parser Token Calendar
