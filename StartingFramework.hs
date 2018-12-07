@@ -61,17 +61,15 @@ mainDateTime = interact (printOutput . processCheck . processInput)
         processCheck = map (maybe SyntaxError (\x -> if checkDateTime x then Valid x else Invalid x))
         printOutput  = unlines . map show
 
---mainCalendar :: IO ()
---mainCalendar = do
- --   file:_ <- getArgs
- --   res <- readCalendar file
---    putStrLn $ maybe "Calendar parsing error" (ppMonth (Year 2012) (Month 11)) res
+mainCalendar :: IO ()
+mainCalendar = do
+    file:_ <- getArgs
+    res <- readCalendar file
+    putStrLn $ maybe "Calendar parsing error" (ppMonth (Year 2012) (Month 11)) res
 
 -- Exercise 1
 parseDateTime :: Parser Char DateTime
 parseDateTime = DateTime <$> parseDate <* symbol 'T' <*> parseTime <*> option isUTC False
-
---parseDate ::
 
 --Parse Functions for the date
 parseYear :: Parser Char Year
@@ -85,7 +83,6 @@ parseDay = (\x y -> Day $ read (x:[y])) <$> digit <*> digit
 
 parseDate :: Parser Char Date
 parseDate = Date <$> parseYear <*> parseMonth <*> parseDay
-
 
 --Parse funtions for the time
 
@@ -116,9 +113,11 @@ printDateTime :: DateTime -> String
 printDateTime (DateTime x y True) = show x ++ "T" ++ show y ++ "Z"
 printDateTime (DateTime x y _) = show x ++ "T" ++ show y  
 
+-- prints date (makes sure month etc under 10 get a 0 in front)
 instance Show Date where
     show (Date x y z) = addZero 4 (show(unYear x)) ++ addZero 2 (show(unMonth y)) ++ addZero 2  (show(unDay z))
 
+    -- prints time (makes sure hour etc under 10 get a 0 in front)
 instance Show Time where
     show (Time x y z) = addZero 2 (show(unHour x)) ++ addZero 2 (show(unMinute y)) ++ addZero 2 (show(unSecond z))
 
@@ -133,16 +132,20 @@ parsePrint s = fmap printDateTime $ run parseDateTime s
 checkDateTime :: DateTime -> Bool
 checkDateTime (DateTime a b _) = checkDate a && checkTime b
 
+-- Only accepts years between 1000-9999, because only 4-digit years are allowed
 checkDate :: Date -> Bool
 checkDate (Date y m d) = y < (Year 10000) && y > (Year 1000) && m < (Month 13) && validDay y m d
 
+monthDayList :: [Int]
 monthDayList = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 
+-- is this day allowed for given month + year
 validDay :: Year -> Month -> Day -> Bool
 validDay (Year y) (Month m) (Day d) = if (isLeap y && m == 2)
                                             then y < 10000 && y >= 1000 && m <= 12 && m > 0 && d <= 29 && d > 0
                                             else y < 10000 && y >= 1000 && m <= 12 && m > 0 && d <= monthDayList !! (m -1) && d > 0
 
+-- leap years every 4, skipping every 400th
 isLeap :: Int -> Bool
 isLeap y = (y `mod` 4 == 0 && y `mod` 100 /= 0 ) || (y `mod` 400 == 0)
 
@@ -151,20 +154,17 @@ checkTime (Time (Hour h) (Minute m) (Second s)) = h < 24 && h >= 0 && m < 60 && 
 
 -- Exercise 6
 
--- newtype Year  = Year { unYear :: Int }  deriving (Eq, Ord)
 data Calendar = Calendar {calprop :: [CalProp], event :: [Event]}
     deriving (Eq, Ord, Show)
 
 data CalProp = ProdId String | Version
-    deriving (Eq, Ord, Show)
-    
+    deriving (Eq, Ord, Show)    
 
 data Event = Event {eventProp :: [EventProperty]}
     deriving (Eq, Ord, Show)
 
 data EventProperty = DTStamp DateTime | UID String | DTStart DateTime | DTEnd DateTime | Description String | Summary String | Location String
     deriving (Eq, Ord, Show)
-
 
 -- Exercise 7
 data Token = TBegin String
@@ -180,8 +180,10 @@ data Token = TBegin String
            | TLocation String
     deriving (Eq, Ord, Show)
 
+-- scan for tokens until end of file/string
 scanCalendar :: Parser Char [Token]
 scanCalendar = greedy scanToken <* eof
+
 
 scanToken :: Parser Char Token
 scanToken = tWithText TBegin "BEGIN:" <|>
@@ -196,18 +198,23 @@ scanToken = tWithText TBegin "BEGIN:" <|>
             tWithText TSummary "SUMMARY:" <|>
             tWithText TLocation "LOCATION:"
 
+-- parses multiple strings to a single one, to a token
 multiLineTextConstructor :: (String -> Token) -> [String] -> String -> Token
 multiLineTextConstructor f s1 s2 = f (foldr (++) s2 s1)
 
+-- look for many lines ending with "\r\n " (we assumed for multiline a space at the start was needed that gets eaten) (allows for multiline text) and then one line ending with just "\r\n"
 tWithText :: (String -> Token) -> String -> Parser Char Token
-tWithText f s = (multiLineTextConstructor f) <$ token s <*> many ( many (notSymbol '\r') <* symbol '\r' <* symbol '\n' <* symbol ' ') <*> ( some (notSymbol '\r') <* symbol '\r' <* symbol '\n')
+tWithText f s = (multiLineTextConstructor f) <$ token s <*> many ( many (notSymbol '\r') <* symbol '\r' <* symbol '\n' <* symbol ' ') <*> some (notSymbol '\r') <* symbol '\r' <* symbol '\n'
 
+-- parse a token with dateTime
 tWithDateTime :: (DateTime -> Token) -> String -> Parser Char Token
 tWithDateTime f s = f <$ token s <*> parseDateTime <* symbol '\r' <* symbol '\n'
 
+-- any symbol, except s
 notSymbol :: Eq s  => s -> Parser s s
 notSymbol x = satisfy (/=x)
 
+-- parses a calendar, errors when the calendar is invalid
 parseCalendar :: Parser Token Calendar
 parseCalendar = validCalendar <$ symbol (TBegin "VCALENDAR") <*> many parseCalProp <*> many parseEvent <* symbol (TEnd "VCALENDAR")
 
@@ -222,11 +229,15 @@ validProps p = length p == 2 && not(isProp (p !! 0) (p !! 1))
 validEventProps :: Event -> Bool
 validEventProps (Event e) = (and (map (\x -> (numTimesFound x e) == 1) [DTStamp dateTimeNull, UID "", DTStart dateTimeNull, DTEnd dateTimeNull])) && (and (map (\x -> (numTimesFound x e) <= 1) [Description "", Summary "", Location ""]))
 
+dateTimeNull :: DateTime
+dateTimeNull = (DateTime (Date (Year 1) (Month 1) (Day 1)) (Time (Hour 0) (Minute 0) (Second 0)) True)
+
 isProp :: CalProp -> CalProp -> Bool
 isProp (Version) (Version) = True
 isProp (ProdId _) (ProdId _) = True
 isProp _ _ = False
 
+-- check if an event prop is form a certain type
 isEventProp :: EventProperty -> EventProperty -> Bool
 isEventProp (DTStamp _) (DTStamp _) = True
 isEventProp (UID _) (UID _) = True
@@ -242,6 +253,7 @@ numTimesFound :: EventProperty -> [EventProperty] -> Int
 numTimesFound _ [] = 0
 numTimesFound x xs = (length . filter (isEventProp x)) xs
 
+-- parses any calendar property
 parseCalProp :: Parser Token CalProp
 parseCalProp = parseProdId <|> parseVersion
 
@@ -258,9 +270,11 @@ prodId (TProdId t) = ProdId t
 parseVersion :: Parser Token CalProp
 parseVersion = Version <$ token ([TVersion "2.0"])
 
+-- parses any event
 parseEvent :: Parser Token Event
 parseEvent = Event <$ symbol ( TBegin "VEVENT") <*> many parseEventProp <* symbol (TEnd "VEVENT")
 
+-- parses any event property
 parseEventProp :: Parser Token EventProperty
 parseEventProp = tokenToEventProp <$> satisfy isValidEventPropToken
 
@@ -291,18 +305,10 @@ recognizeCalendar s = run scanCalendar s >>= run parseCalendar
 readCalendar :: FilePath -> IO (Maybe Calendar)
 readCalendar z = do
         x <- openFile z ReadWriteMode
+        -- sets the correct newline mode
         hSetNewlineMode x noNewlineTranslation
         y <- hGetContents x
         return (recognizeCalendar y)
-
-printReadFile :: FilePath -> IO ()
-printReadFile z = do
-                x <- openFile z ReadWriteMode
-                hSetNewlineMode x noNewlineTranslation
-                y <- hGetContents x
-                print y
-        
-             
 
 -- Exercise 9
 -- DO NOT use a derived Show instance. Your printing style needs to be nicer than that :)
@@ -342,10 +348,11 @@ timeOfProperty :: EventProperty -> DateTime
 timeOfProperty (DTStart t) = t
 timeOfProperty (DTEnd t) = t
 timeOfProperty (DTStamp t) = t
-timeOfProperty _ = dateTimeNull
+timeOfProperty _ = error "wrong event property"
 
 checkOverlapping :: Calendar -> Bool
 checkOverlapping (Calendar _ e) = or $ map (\x -> or $ map (isOverlapping x) dtpairs) dtpairs
+                            -- makes the list of events a tuple of (starttime, endtime, uid)
                             where dtpairs = map (\x -> (startTimeEvent x, endTimeEvent x, getUID x)) e
 
 getUID :: Event -> EventProperty
@@ -354,12 +361,17 @@ getUID (Event p) = head $ filter (\x -> isEventProp (UID "") x) p
 getSummary :: Event -> EventProperty
 getSummary (Event p) = head $ filter (\x -> isEventProp (Summary "") x) p
 
+-- checks if two time windows overlap, but if the uids are identical, it means the window is from the same event, so it shouldnt overlap
 isOverlapping :: (DateTime, DateTime, EventProperty) -> (DateTime, DateTime, EventProperty) -> Bool
 isOverlapping (dts1, dte1, id1) (dts2, dte2, id2) = ((dts2 < dte1 && dts2 >= dts1) || (dts1 < dte2 && dts1 >= dts2)) && id1 /= id2
 
 timeSpent :: String -> Calendar -> Int
 timeSpent s (Calendar _ e) = calculateTime $ filter (\x -> containsProperty x (Summary s)) e
 
+containsProperty :: Event -> EventProperty -> Bool
+containsProperty (Event e) p = elem p e
+
+-- calculates the total time, merging the overlapping windows
 calculateTime :: [Event] -> Int
 calculateTime e = totalTime $ mergeOverlapping $ map (\x -> (startTimeEvent x, endTimeEvent x, getUID x)) e
 
@@ -370,6 +382,7 @@ totalTime (x:xs)= minutesIn x + totalTime xs
 minutesIn :: (DateTime, DateTime, EventProperty) -> Int
 minutesIn (x1, x2, _) = (secondsFromZero x2 - secondsFromZero x1) `div` 60
 
+-- used to check the difference between two date times in seconds
 secondsFromZero :: DateTime -> Int
 secondsFromZero (DateTime (Date (Year x1) (Month x2) (Day x3)) (Time (Hour x4) (Minute x5) (Second x6)) _) = x6 + x5 * 60 + x4 * 3600 + x3 * 86400 + (daysInMonths x2) * 2592000 + x1 * 31536000 + (amountOfLeapYear x1) * 86400
 
@@ -390,12 +403,14 @@ daysInMonths 10 = 31 + daysInMonths 9
 daysInMonths 11 = 30 + daysInMonths 10
 daysInMonths 12 = 31 + daysInMonths 11
 
+-- checks if a list of windows contains an overlapping time, and merges the windows if they do
 mergeOverlapping :: [(DateTime, DateTime, EventProperty)] -> [(DateTime,DateTime, EventProperty)]
 mergeOverlapping [] = []
 mergeOverlapping ((x1,x2,x3):xs) = if (or $ map (isOverlapping (x1, x2, x3)) xs)
                                     then mergeTime (x1,x2,x3) ( head ( filter (isOverlapping (x1,x2,x3)) xs ) ) : mergeOverlapping (delete (head ( filter (isOverlapping (x1,x2,x3)) xs )) xs)
                                     else (x1,x2,x3) : mergeOverlapping xs
 
+-- merge two windows to a single one
 mergeTime :: (DateTime, DateTime, EventProperty) -> (DateTime, DateTime, EventProperty) -> (DateTime, DateTime, EventProperty)
 mergeTime (x1,x2,x3) (y1,y2,y3) = (smallestTime x1 y1, biggestTime x2 y2, UID "0")
 
@@ -409,61 +424,6 @@ biggestTime x y = if (x>y)
                     then x
                     else y
 
-containsProperty :: Event -> EventProperty -> Bool
-containsProperty (Event e) p = elem p e
-
 -- Exercise 11
 ppMonth :: Year -> Month -> Calendar -> String
 ppMonth (Year y) (Month m) (Calendar _ e) = show $ filter (\x -> (unMonth $ month $date (startTimeEvent x)) == m ) e
-
-
-
-
--- testing constants
-testDateTime :: String
-testDateTime = "20111012T083945"
-
-dateTimeNull :: DateTime
-dateTimeNull = DateTime (Date (Year 2000) (Month 01) (Day 01)) (Time (Hour 00) (Minute 00) (Second 00)) True
-
-dateTimeNull2 :: DateTime
-dateTimeNull2 = DateTime (Date (Year 2000) (Month 01) (Day 01)) (Time (Hour 10) (Minute 00) (Second 00)) True
-
-dateTimeNull3 :: DateTime
-dateTimeNull3 = DateTime (Date (Year 2000) (Month 01) (Day 01)) (Time (Hour 13) (Minute 00) (Second 00)) True
-
-testCalendar :: String
-testCalendar = "BEGIN:VCALENDAR\r\n\
-\VERSION:2.0\r\n\
-\PRODID:www.testMeiCalendar.net\r\n\
-\BEGIN:VEVENT\r\n\
-\DTSTART:20101231T230000\r\n\
-\DTEND:20110101T010000\r\n\
-\SUMMARY:New Years Eve Reminder\r\n\
-\LOCATION:Downtown\r\n\
-\DESCRIPTION:Let's get together for New Years Eve\r\n\
-\UID:ABCD1234\r\n\
-\DTSTAMP:20101125T112600\r\n\
-\END:VEVENT\r\n\
-\END:VCALENDAR\r\n\
-\"
-
-testCalendar2 :: String
-testCalendar2 = "BEGIN:VCALENDAR\r\n\
-\VERSION:2.0\r\n\
-\PRODID:-//hacksw/handcal//NONSGML v1.0//EN\r\n\
-\BEGIN:VEVENT\r\n\
-\UID:12345@example.com\r\n\
-\DTSTAMP:20111205T170000Z\r\n\
-\DTSTART:20111205T170000Z\r\n\
-\DTEND:20111205T210000Z\r\n\
-\DTEND:20111205T210000Z\r\n\
-\SUMMARY:This is a very long description th\r\n\
-\ at runs over multiple lines.\r\n\
-\  A third one even.\r\n\
-\END:VEVENT\r\n\
-\END:VCALENDAR\r\n"
-
-testCalendar3 :: Calendar
-testCalendar3 = (Calendar {calprop = [Version,ProdId "www.testMeiCalendar.net"], event = [Event {eventProp = [DTStart dateTimeNull,DTEnd dateTimeNull2,Summary "New Years Eve Reminder", Location "Downtown",Description "Let's get together for New Years Eve",UID "ABCD1234",DTStamp dateTimeNull]}
-                                                                                         ,Event {eventProp = [DTStart dateTimeNull,DTEnd dateTimeNull3,Summary "New Years Eve Reminder", Location "Downtown",Description "Let's get together for New Years Eve",UID "ABCD12345",DTStamp dateTimeNull]}]})
